@@ -1,11 +1,9 @@
 #!/bin/bash
 
 
-Author: Marcel
-Date: July, 2020
-
 #Description: script to display system info
-
+#Author: Marcel
+#Date: July 2020
 
 
 lscpu
