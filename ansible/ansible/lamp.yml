@@ -1,0 +1,107 @@
+---
+- hosts: webserver
+  tasks:
+          - name: Update the system
+            yum: name='*' state=latest
+          - name: Install apache
+            yum: name=httpd state=present 
+          - name: Start apache service
+            service: name=httpd state=started enabled=yes
+#          - name: Configure Firewall
+#            lineinfile:
+#                   path: /etc/sysconfig/iptables
+#                   regexp: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT'
+#                   inserafter: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT'
+#                   line: '-A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT'
+#          - name: Restart Iptables
+#            service: name=iptables state=restarted
+
+
+          - name: Install mysql on Amazon
+            yum: name=mariadb-server state=present
+            when: ansible_distribution == 'Amazon'
+          - name: Start Mysql daemon
+            service: name=mariadb state=started enabled=yes
+            when: ansible_distribution == 'Amazon'
+          - name: Install mysql on Centos and redhat 
+            yum: name=mysql-server state=present
+            when: ansible_distribution == 'CentOS' or ansible_distribution == 'Redhat'
+          - name: Start mysql 
+            service: name=mysqld state=started 
+            when: ansible_distribution == 'CentOS' or ansible_distribution == 'Redhat'
+          - name: mysql dependency install
+            yum: name=MySQL-python state=present
+
+  #        mysql_user: user=root password=school1 host=localhost #check_implicit_admin=true
+          - name: copy cnf file over
+            copy:
+              src: /etc/ansible/my.cnf
+              dest: /root/.my.cnf
+              remote_src: no 
+          - name: Create database webserver
+            mysql_db:
+              name: webserver
+              state: present
+          - name: Create user with access to webserver
+            mysql_user:
+               name: oracle
+               password: school1
+               priv: '*.*:ALL'
+               state: present
+          - name: Install php 
+            yum: 
+              name: "{{ item }}"
+              state: present
+            with_items:
+                 - php
+                 - php-gd
+                 - php-mysql
+
+          - name: Copy php file to target 
+            copy:
+               src: /etc/ansible/info.php
+               dest: /var/www/html/info.php
+               owner: apache
+               group: apache
+               remote_src: no
+            notify:
+               - restart apache
+
+          - name: Install wordpress
+            unarchive:
+               src: https://wordpress.org/wordpress-5.1.1.tar.gz
+               dest: /opt
+               remote_src: yes
+               owner: apache
+               group: apache
+          - name: Copy wordpress file to /var/www/html
+            copy:
+               src: /opt/wordpress/
+               dest: /var/www/html
+               owner: apache
+               group: apache
+               remote_src: yes
+            notify: 
+               - restart apache
+          - name: Configure database connection
+            command: "{{ item }}"
+            with_items:
+                    #              - mkdir /var/www/html/wp-content/uploads
+              - cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php
+              - sed -i "s/^define( 'DB_NAME',.*/define( 'DB_NAME', 'webserver' );/" /var/www/html/wp-config.php
+              - sed -i "s/^define( 'DB_USER',.*/define( 'DB_USER', 'oracle' );/" /var/www/html/wp-config.php
+              - sed -i "s/^define( 'DB_PASSWORD',.*/define( 'DB_PASSWORD', 'school1' );/" /var/www/html/wp-config.php
+            notify:
+              - restart apache
+          - name: Set permission on /var/www/html directory 
+            file:
+               dest: /var/www/html
+               owner: apache
+               group: apache 
+               mode: u=rwX,g=rX,o=rX 
+               recurse: yes
+  handlers:
+    - name: restart apache
+      service:
+        name: httpd
+        state: restarted

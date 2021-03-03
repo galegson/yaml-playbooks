@@ -1,0 +1,19 @@
+---
+ - hosts: webserver
+   tasks:
+       - name: Install apache
+         yum:
+           name: httpd
+           state: present
+       - name: Install vim
+         yum : name=vim state=present
+       - name: Start apache
+         service:
+            name: httpd
+            state: started
+            enabled: yes
+       - name: Copy content to our webserver
+         copy:
+            src: /etc/ansible/web
+            dest: /var/www/html/index.html
+            remote_src: no

@@ -1,0 +1,19 @@
+---
+ - hosts: testserver
+   user: root
+   tasks: 
+        - name: Install apache
+          yum: 
+            name: httpd
+            state: present
+
+        - name: Start Daemon
+          service:
+             name: httpd
+             state: started
+             enabled: yes
+
+
+
+
+

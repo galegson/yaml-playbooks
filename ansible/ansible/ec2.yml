@@ -1,0 +1,17 @@
+---
+ - hosts: localhost
+   connection: local
+   tasks:
+     - name: Create Ec2 Instance   
+       ec2:
+          key_name: mag
+          instance_type: t2.micro
+          image: ami-02354e95b39ca8dec
+          wait: yes
+          group: ansible
+          count: 2
+          # vpc_subnet_id:vpc_subnet_id: subnet-29e63245
+          # assign_public_ip: yes
+          region: us-east-1
+          instance_tags:
+                  name: ansible-launch
